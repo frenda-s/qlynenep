@@ -1,0 +1,173 @@
+name: Build Android APK (Capacitor CLI)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: 'URL backend Cloudflare Workers (ví dụ: https://nenepos.yourname.workers.dev)'
+        required: false
+        default: ''
+        type: string
+      build_type:
+        description: 'Kiểu build APK (release dùng Capacitor CLI, debug dùng gradle assembleDebug)'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Checkout source code
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: 📦 Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+          run_install: false
+
+      - name: 🟢 Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: 📥 Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: ⚙️ Approve build scripts (workerd)
+        run: pnpm approve-builds workerd || true
+
+      - name: 🔨 Build Web Assets & Sync Capacitor
+        env:
+          CAPACITOR_SERVER_URL: ${{ github.event.inputs.server_url || secrets.APP_URL }}
+        run: pnpm build:mobile
+
+      - name: 🔑 Make Gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: 🔐 Prepare Keystore for Signing
+        id: keystore
+        run: |
+          KEYSTORE_PATH="ci-signing.keystore"
+          KEYSTORE_PASS="${{ secrets.KEYSTORE_PASSWORD }}"
+          KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
+          KEY_ALIAS_PASS="${{ secrets.KEY_PASSWORD }}"
+
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "Using keystore from KEYSTORE_BASE64 Secret..."
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$KEYSTORE_PATH"
+          elif [ -n "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" ]; then
+            echo "Using keystore from SIGNING_KEYSTORE_BASE64 Secret..."
+            echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d > "$KEYSTORE_PATH"
+          else
+            echo "No custom keystore secret provided. Generating temporary CI signing keystore..."
+            KEYSTORE_PASS="nenepos_build_secret"
+            KEY_ALIAS="nenepos"
+            KEY_ALIAS_PASS="nenepos_build_secret"
+            keytool -genkeypair -v \
+              -keystore "$KEYSTORE_PATH" \
+              -alias "$KEY_ALIAS" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "$KEYSTORE_PASS" \
+              -keypass "$KEY_ALIAS_PASS" \
+              -dname "CN=NeNepOS, OU=App, O=NeNepOS, L=City, S=State, C=VN"
+          fi
+
+          echo "::add-mask::$KEYSTORE_PASS"
+          echo "::add-mask::$KEY_ALIAS_PASS"
+          echo "path=$KEYSTORE_PATH" >> "$GITHUB_OUTPUT"
+          echo "pass=$KEYSTORE_PASS" >> "$GITHUB_OUTPUT"
+          echo "alias=$KEY_ALIAS" >> "$GITHUB_OUTPUT"
+          echo "alias_pass=$KEY_ALIAS_PASS" >> "$GITHUB_OUTPUT"
+
+      - name: 🚀 Build APK with Capacitor CLI
+        env:
+          KEYSTORE_PATH: ${{ steps.keystore.outputs.path }}
+          KEYSTORE_PASS: ${{ steps.keystore.outputs.pass }}
+          KEYSTORE_ALIAS: ${{ steps.keystore.outputs.alias }}
+          KEYSTORE_ALIAS_PASS: ${{ steps.keystore.outputs.alias_pass }}
+        run: |
+          if [ "${{ github.event.inputs.build_type }}" = "debug" ]; then
+            echo "🔨 Building Debug APK with Gradle..."
+            cd android && ./gradlew assembleDebug --stacktrace
+          else
+            echo "🚀 Building APK via Capacitor CLI (cap build android)..."
+            pnpm exec cap build android \
+              --androidreleasetype APK \
+              --keystorepath "$KEYSTORE_PATH" \
+              --keystorepass "$KEYSTORE_PASS" \
+              --keystorealias "$KEYSTORE_ALIAS" \
+              --keystorealiaspass "$KEYSTORE_ALIAS_PASS" \
+              --signing-type jarsigner
+          fi
+
+      - name: 📦 Collect & Rename APK
+        run: |
+          mkdir -p dist-apk
+          APK_FILE=$(find android/app/build/outputs/apk -type f -name "*signed.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            APK_FILE=$(find android/app/build/outputs/apk -type f -name "*debug.apk" | head -n 1)
+          fi
+          if [ -z "$APK_FILE" ]; then
+            APK_FILE=$(find android/app/build/outputs/apk -type f -name "*.apk" ! -name "*unsigned*" | head -n 1)
+          fi
+          if [ -z "$APK_FILE" ]; then
+            APK_FILE=$(find android/app/build/outputs/apk -type f -name "*.apk" | head -n 1)
+          fi
+          if [ -z "$APK_FILE" ]; then
+            echo "❌ Không tìm thấy file APK được sinh ra!"
+            exit 1
+          fi
+          echo "Tìm thấy APK: $APK_FILE"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          cp "$APK_FILE" "dist-apk/NeNepOS-${SHORT_SHA}.apk"
+          cp "$APK_FILE" "dist-apk/NeNepOS-latest.apk"
+          ls -la dist-apk/
+
+      - name: 📤 Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeNepOS-APK
+          path: dist-apk/*.apk
+          retention-days: 30
+
+      - name: 🏷️ Publish Release (nếu có Git Tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-apk/*.apk
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

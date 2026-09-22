@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+      # Đổi secret thật khi deploy. Sinh: openssl rand -base64 32
+      AUTH_SECRET: change-me-in-production
+      # ── Local SQLite (không cần token) ──
+      LIBSQL_URL: file:/app/data/local.db
+      # ── Khi có Turso remote, thay 2 dòng trên bằng: ──
+      # LIBSQL_URL: libsql://your-db.turso.io
+      # LIBSQL_AUTH_TOKEN: your-turso-token
+      # SKIP_MIGRATIONS: "1"   # nếu đã migrate từ trước
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

@@ -1,0 +1,12 @@
+# Cấu hình biến môi trường local khi chạy "pnpm preview:cf" hoặc "wrangler dev"
+# Sao chép file này thành .dev.vars (wrangler tự động nạp file .dev.vars)
+
+# JWT Secret ký session
+AUTH_SECRET=dev-secret-change-me-in-production
+
+# Turso database credentials
+# Tạo database tại Turso: turso db create nenepos
+# Lấy URL: turso db show nenepos --url
+# Lấy Token: turso db tokens create nenepos
+LIBSQL_URL=libsql://your-database.turso.io
+LIBSQL_AUTH_TOKEN=your-turso-auth-token

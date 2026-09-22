@@ -1,0 +1,55 @@
+@import "tailwindcss";
+@import "@fontsource-variable/newsreader";
+@import "@fontsource-variable/inter";
+
+@theme {
+  --font-serif: "Newsreader Variable", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+
+  --color-paper: #faf9f6;
+  --color-paper-dim: #f3f1ec;
+  --color-ink: #1a1917;
+  --color-ink-muted: #6b655c;
+  --color-ink-faint: #9a948a;
+  --color-rule: #d8d3c8;
+  --color-accent: #a41515;
+  --color-accent-ink: #7c1010;
+  --color-ok: #1d6b3a;
+  --color-warn: #8a5a12;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01" on;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, .serif {
+    font-family: var(--font-serif);
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+}
+
+/* Newspaper utility — hairline rule under masthead */
+.hairline {
+  border-color: var(--color-rule);
+}
+.rule-b {
+  border-bottom: 1px solid var(--color-rule);
+}
+.rule-t {
+  border-top: 1px solid var(--color-rule);
+}
+.rule-b-thick {
+  border-bottom: 3px double var(--color-ink);
+}
