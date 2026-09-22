@@ -23,6 +23,22 @@ export function getSessionToken(event: H3Event): string | null {
   return getCookie(event, SESSION_COOKIE) ?? null
 }
 
+export function getAuthSecret(event: H3Event): string {
+  const cfEnv = (event.context as any)?.cloudflare?.env
+  let runtimeSecret: string | undefined
+  try {
+    const config = useRuntimeConfig(event) as { authSecret?: string }
+    runtimeSecret = config?.authSecret
+  } catch {}
+  return (
+    cfEnv?.AUTH_SECRET ||
+    cfEnv?.NUXT_AUTH_SECRET ||
+    runtimeSecret ||
+    process.env.AUTH_SECRET ||
+    'dev-secret-change-me-in-production'
+  )
+}
+
 export async function getAuthUser(event: H3Event): Promise<SessionPayload | null> {
   const ctx = event.context as { _authUser?: SessionPayload | null }
   if ('_authUser' in ctx) return ctx._authUser!
@@ -32,8 +48,8 @@ export async function getAuthUser(event: H3Event): Promise<SessionPayload | null
     ctx._authUser = null
     return null
   }
-  const config = useRuntimeConfig(event) as { authSecret: string }
-  const user = await verifySession(token, config.authSecret)
+  const secret = getAuthSecret(event)
+  const user = await verifySession(token, secret)
   ctx._authUser = user
   return user
 }

@@ -14,12 +14,12 @@ on:
   workflow_dispatch:
     inputs:
       server_url:
-        description: 'URL backend Cloudflare Workers (ví dụ: https://nenepos.yourname.workers.dev)'
+        description: 'Cloudflare Workers backend URL'
         required: false
-        default: ''
+        default: 'https://nenepos.frenda.workers.dev'
         type: string
       build_type:
-        description: 'Kiểu build APK (release dùng Capacitor CLI, debug dùng gradle assembleDebug)'
+        description: 'APK build type (release uses Capacitor CLI, debug uses gradle assembleDebug)'
         required: true
         default: 'release'
         type: choice
@@ -36,46 +36,47 @@ jobs:
       contents: write
 
     steps:
-      - name: 📥 Checkout source code
+      - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: ☕ Set up JDK 21
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
           cache: 'gradle'
 
-      - name: 📦 Install pnpm
+      - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 11.3.0
           run_install: false
 
-      - name: 🟢 Set up Node.js 22
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'pnpm'
 
-      - name: 📥 Install dependencies
+      - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: ⚙️ Approve build scripts (workerd)
+      - name: Approve build scripts (workerd)
         run: pnpm approve-builds workerd || true
 
-      - name: 🔨 Build Web Assets & Sync Capacitor
+      - name: Build Web Assets and Sync Capacitor
         env:
-          CAPACITOR_SERVER_URL: ${{ github.event.inputs.server_url || secrets.APP_URL }}
+          CAPACITOR_SERVER_URL: ${{ github.event.inputs.server_url || secrets.APP_URL || 'https://nenepos.frenda.workers.dev' }}
         run: pnpm build:mobile
 
-      - name: 🔑 Make Gradlew executable
+      - name: Make Gradlew executable
         run: chmod +x android/gradlew
 
-      - name: 🔐 Prepare Keystore for Signing
+      - name: Prepare Keystore for Signing
         id: keystore
         run: |
-          KEYSTORE_PATH="ci-signing.keystore"
+          mkdir -p "${GITHUB_WORKSPACE}/android"
+          KEYSTORE_PATH="${GITHUB_WORKSPACE}/android/ci-signing.keystore"
           KEYSTORE_PASS="${{ secrets.KEYSTORE_PASSWORD }}"
           KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
           KEY_ALIAS_PASS="${{ secrets.KEY_PASSWORD }}"
@@ -102,6 +103,8 @@ jobs:
               -dname "CN=NeNepOS, OU=App, O=NeNepOS, L=City, S=State, C=VN"
           fi
 
+          cp "$KEYSTORE_PATH" "${GITHUB_WORKSPACE}/ci-signing.keystore" 2>/dev/null || true
+
           echo "::add-mask::$KEYSTORE_PASS"
           echo "::add-mask::$KEY_ALIAS_PASS"
           echo "path=$KEYSTORE_PATH" >> "$GITHUB_OUTPUT"
@@ -109,7 +112,7 @@ jobs:
           echo "alias=$KEY_ALIAS" >> "$GITHUB_OUTPUT"
           echo "alias_pass=$KEY_ALIAS_PASS" >> "$GITHUB_OUTPUT"
 
-      - name: 🚀 Build APK with Capacitor CLI
+      - name: Build APK with Capacitor CLI
         env:
           KEYSTORE_PATH: ${{ steps.keystore.outputs.path }}
           KEYSTORE_PASS: ${{ steps.keystore.outputs.pass }}
@@ -117,10 +120,10 @@ jobs:
           KEYSTORE_ALIAS_PASS: ${{ steps.keystore.outputs.alias_pass }}
         run: |
           if [ "${{ github.event.inputs.build_type }}" = "debug" ]; then
-            echo "🔨 Building Debug APK with Gradle..."
+            echo "Building Debug APK with Gradle..."
             cd android && ./gradlew assembleDebug --stacktrace
           else
-            echo "🚀 Building APK via Capacitor CLI (cap build android)..."
+            echo "Building APK via Capacitor CLI (cap build android)..."
             pnpm exec cap build android \
               --androidreleasetype APK \
               --keystorepath "$KEYSTORE_PATH" \
@@ -130,7 +133,7 @@ jobs:
               --signing-type jarsigner
           fi
 
-      - name: 📦 Collect & Rename APK
+      - name: Collect and Rename APK
         run: |
           mkdir -p dist-apk
           APK_FILE=$(find android/app/build/outputs/apk -type f -name "*signed.apk" | head -n 1)
@@ -144,23 +147,23 @@ jobs:
             APK_FILE=$(find android/app/build/outputs/apk -type f -name "*.apk" | head -n 1)
           fi
           if [ -z "$APK_FILE" ]; then
-            echo "❌ Không tìm thấy file APK được sinh ra!"
+            echo "Error: No generated APK file found!"
             exit 1
           fi
-          echo "Tìm thấy APK: $APK_FILE"
+          echo "Found APK: $APK_FILE"
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           cp "$APK_FILE" "dist-apk/NeNepOS-${SHORT_SHA}.apk"
           cp "$APK_FILE" "dist-apk/NeNepOS-latest.apk"
           ls -la dist-apk/
 
-      - name: 📤 Upload APK Artifact
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: NeNepOS-APK
           path: dist-apk/*.apk
           retention-days: 30
 
-      - name: 🏷️ Publish Release (nếu có Git Tag v*)
+      - name: Publish Release (if Git Tag v*)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
