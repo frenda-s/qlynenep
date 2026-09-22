@@ -30,7 +30,8 @@ async function submit() {
 <template>
   <div class="flex min-h-screen items-center justify-center px-4">
     <div class="w-full max-w-sm">
-      <div class="rule-b-thick pb-6 text-center">
+      <div class="rule-b-thick flex flex-col items-center pb-6 text-center">
+        <img src="/logo-circle.png" alt="NeNepOS Logo" class="mb-3 h-20 w-20 rounded-full border border-rule/50 shadow-xs" />
         <p class="serif text-4xl font-bold leading-none">NeNepOS</p>
         <p class="mt-2 text-[11px] uppercase tracking-[0.3em] text-ink-muted">Hệ thống quản lý nề nếp học sinh</p>
       </div>

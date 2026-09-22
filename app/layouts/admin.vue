@@ -27,9 +27,12 @@ onMounted(() => {
 <template>
   <div class="flex min-h-screen bg-paper text-ink">
     <aside class="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-rule">
-      <div class="border-b-2 border-ink px-5 py-5">
-        <p class="serif text-2xl font-bold leading-none">NeNepOS</p>
-        <p class="mt-1 text-[11px] uppercase tracking-widest text-ink-muted">Nề nếp học sinh</p>
+      <div class="flex items-center gap-3 border-b-2 border-ink px-5 py-4">
+        <img src="/logo-circle.png" alt="NeNepOS Logo" class="h-10 w-10 shrink-0 rounded-full border border-rule/50" />
+        <div>
+          <p class="serif text-2xl font-bold leading-none">NeNepOS</p>
+          <p class="mt-1 text-[11px] uppercase tracking-widest text-ink-muted">Nề nếp học sinh</p>
+        </div>
       </div>
       <nav class="flex-1 overflow-y-auto py-3">
         <NuxtLink

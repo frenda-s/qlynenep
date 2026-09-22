@@ -22,9 +22,12 @@ onMounted(async () => {
 
 <template>
   <div>
-    <header class="rule-b pb-4">
-      <p class="text-[11px] uppercase tracking-widest text-ink-muted">Nề nếp học sinh</p>
-      <h1 class="serif mt-1 text-3xl font-bold">Xin chào, {{ auth.displayName }}</h1>
+    <header class="rule-b flex items-center gap-3.5 pb-4">
+      <img src="/logo-circle.png" alt="NeNepOS Logo" class="h-12 w-12 shrink-0 rounded-full border border-rule/50 shadow-xs" />
+      <div>
+        <p class="text-[11px] uppercase tracking-widest text-ink-muted">Nề nếp học sinh</p>
+        <h1 class="serif mt-0.5 text-2xl font-bold">Xin chào, {{ auth.displayName }}</h1>
+      </div>
     </header>
 
     <section class="mt-6">
