@@ -1,12 +1,10 @@
-import { requireRole } from '../../utils/auth'
-import { useDB } from '../../database/client'
+import { requirePermission } from '../../utils/permissions'
 import { classStatistics } from '../../services/statistics.service'
 import { periodQuery } from '../../schemas/common'
 import { parseQuery } from '../../utils/query'
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['ADMIN', 'TEACHER'])
-  const db = useDB(event)
+  const { db, actor } = await requirePermission(event, 'statistics.view')
   const q = parseQuery(event, periodQuery)
-  return await classStatistics(db, q.period)
+  return await classStatistics(db, q.period, actor.classIds)
 })

@@ -1,4 +1,4 @@
-import { and, desc, eq, like, or, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, inArray, like, or, sql, type SQL } from 'drizzle-orm'
 import type { DB } from '../database/client'
 import { classes, students, users, violations, violationItems, violationTypes, type NewStudent } from '../database/schema'
 
@@ -9,6 +9,8 @@ export interface StudentListFilter {
   classId?: string
   grade?: number
   status?: 'active' | 'inactive'
+  /** null/undefined = tất cả lớp, [] = không lớp nào (giáo viên chưa được phân công). */
+  classIds?: string[] | null
   page: number
   limit: number
 }
@@ -20,6 +22,10 @@ export async function listStudents(db: DB, f: StudentListFilter) {
     where.push(or(like(students.fullName, term), like(students.studentCode, term)))
   }
   if (f.classId) where.push(eq(students.classId, f.classId))
+  if (f.classIds !== null && f.classIds !== undefined) {
+    if (f.classIds.length === 0) return { rows: [], total: 0 }
+    where.push(inArray(students.classId, f.classIds))
+  }
   if (f.grade != null) where.push(eq(classes.grade, f.grade))
   if (f.status) where.push(eq(students.status, f.status))
 
@@ -60,7 +66,28 @@ export async function findStudentById(db: DB, id: string) {
   return db.query.students.findFirst({ where: eq(students.id, id), with: { class: true } })
 }
 
-export async function listStudentsForPrint(db: DB, classId?: string) {
+export interface PrintStudentFilter {
+  classId?: string
+  classIds?: string[] | null
+  studentId?: string
+  status?: 'active' | 'inactive'
+  q?: string
+}
+
+export async function listStudentsForPrint(db: DB, f: PrintStudentFilter = {}) {
+  const where: SQL[] = []
+  if (f.classId) where.push(eq(students.classId, f.classId))
+  if (f.classIds !== null && f.classIds !== undefined) {
+    if (f.classIds.length === 0) return []
+    where.push(inArray(students.classId, f.classIds))
+  }
+  if (f.studentId) where.push(eq(students.id, f.studentId))
+  if (f.status) where.push(eq(students.status, f.status))
+  if (f.q) {
+    const term = `%${f.q}%`
+    where.push(or(like(students.fullName, term), like(students.studentCode, term)))
+  }
+
   return db
     .select({
       id: students.id,
@@ -69,11 +96,13 @@ export async function listStudentsForPrint(db: DB, classId?: string) {
       qrCode: students.qrCode,
       photo: students.photo,
       className: classes.name,
+      grade: classes.grade,
+      academicYear: classes.academicYear,
       status: students.status,
     })
     .from(students)
     .innerJoin(classes, eq(students.classId, classes.id))
-    .where(classId ? eq(students.classId, classId) : undefined)
+    .where(where.length ? and(...where) : undefined)
     .orderBy(classes.name, students.fullName)
 }
 
@@ -104,11 +133,14 @@ export async function countStudents(db: DB): Promise<number> {
   return Number(count)
 }
 
-export async function countActiveStudents(db: DB): Promise<number> {
+export async function countActiveStudents(db: DB, classIds?: string[] | null): Promise<number> {
+  if (classIds && classIds.length === 0) return 0
+  const where: SQL[] = [eq(students.status, 'active')]
+  if (classIds !== null && classIds !== undefined) where.push(inArray(students.classId, classIds))
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)` })
     .from(students)
-    .where(eq(students.status, 'active'))
+    .where(and(...where))
   return Number(count)
 }
 

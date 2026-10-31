@@ -7,7 +7,7 @@ const fullSchema = { ...schema, ...relations }
 
 export type DB = LibSQLDatabase<typeof fullSchema>
 
-type MaybeEvent = { context?: { cloudflare?: { env?: Record<string, string> } } }
+type MaybeEvent = { context?: any }
 
 /**
  * Lấy URL + auth token cho libSQL/Turso.

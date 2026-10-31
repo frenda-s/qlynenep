@@ -1,13 +1,13 @@
-import { requireRole } from '../../utils/auth'
-import { useDB } from '../../database/client'
+import { requirePermission, assertClassAccess } from '../../utils/permissions'
 import { recordViolation } from '../../services/violations.service'
 import { createViolationSchema } from '../../schemas/violations'
 import { parseBody } from '../../utils/errors'
+import { findStudentById } from '../../repositories/students'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireRole(event, ['ADMIN', 'TEACHER', 'DISCIPLINE'])
-  const db = useDB(event)
+  const { db, actor } = await requirePermission(event, 'violations.create')
   const input = await parseBody(event, createViolationSchema)
-  const result = await recordViolation(db, input, user)
-  return result
+  const student = await findStudentById(db, input.student_id)
+  if (student) assertClassAccess(actor, student.classId)
+  return await recordViolation(db, input, actor)
 })

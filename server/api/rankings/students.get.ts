@@ -1,12 +1,22 @@
-import { requireRole } from '../../utils/auth'
-import { useDB } from '../../database/client'
+import { requirePermission } from '../../utils/permissions'
 import { studentRanking } from '../../services/rankings.service'
-import { periodQuery } from '../../schemas/common'
+import { rankingQuerySchema } from '../../schemas/rankings'
 import { parseQuery } from '../../utils/query'
+import { forbidden } from '../../utils/errors'
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['ADMIN', 'TEACHER'])
-  const db = useDB(event)
-  const q = parseQuery(event, periodQuery)
-  return await studentRanking(db, q.period)
+  const { db, actor } = await requirePermission(event, 'rankings.view')
+  const q = parseQuery(event, rankingQuerySchema)
+
+  if (q.class_id && actor.classIds !== null && !actor.classIds.includes(q.class_id)) {
+    forbidden('Bạn không phụ trách lớp này')
+  }
+
+  return await studentRanking(db, q.period, {
+    classId: q.class_id,
+    classIds: actor.classIds,
+    grade: q.grade,
+    q: q.q,
+    limit: q.limit,
+  })
 })

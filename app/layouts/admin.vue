@@ -2,17 +2,34 @@
 const auth = useAuth()
 const route = useRoute()
 
-const nav = [
-  { label: 'Dashboard', to: '/admin' },
-  { label: 'Học sinh', to: '/admin/students' },
-  { label: 'Lớp', to: '/admin/classes' },
-  { label: 'Vi phạm', to: '/admin/violations' },
-  { label: 'Loại vi phạm', to: '/admin/violation-types' },
-  { label: 'Xếp hạng', to: '/admin/rankings' },
-  { label: 'Thống kê', to: '/admin/statistics' },
-  { label: 'Nhật ký', to: '/admin/logs' },
-  { label: 'Tài khoản', to: '/admin/accounts' },
+type NavItem = {
+  label: string
+  to: string
+  permission?: string
+  teacherOnly?: boolean
+  adminOnly?: boolean
+}
+
+const allNav: NavItem[] = [
+  { label: 'Dashboard', to: '/admin', permission: 'statistics.view' },
+  { label: 'Lớp của tôi', to: '/admin/my-class', teacherOnly: true },
+  { label: 'Học sinh', to: '/admin/students', permission: 'students.view' },
+  { label: 'Lớp', to: '/admin/classes', permission: 'classes.manage', adminOnly: true },
+  { label: 'Vi phạm', to: '/admin/violations', permission: 'violations.view' },
+  { label: 'Loại vi phạm', to: '/admin/violation-types', permission: 'violation_types.manage' },
+  { label: 'Xếp hạng', to: '/admin/rankings', permission: 'rankings.view' },
+  { label: 'Thống kê', to: '/admin/statistics', permission: 'statistics.view' },
+  { label: 'Nhật ký', to: '/admin/logs', permission: 'logs.view' },
+  { label: 'Tài khoản', to: '/admin/accounts', permission: 'users.manage' },
 ]
+
+const nav = computed(() =>
+  allNav.filter((item) => {
+    if (item.teacherOnly) return auth.isTeacher.value
+    if (item.adminOnly) return auth.isAdmin.value
+    return !item.permission || auth.can(item.permission)
+  }),
+)
 
 function isActive(to: string) {
   if (to === '/admin') return route.path === '/admin'
@@ -50,7 +67,11 @@ onMounted(() => {
         </NuxtLink>
       </nav>
       <div class="border-t border-rule px-5 py-3">
-        <NuxtLink to="/print/student-badges" class="text-xs text-ink-muted underline-offset-2 hover:underline">
+        <NuxtLink
+          v-if="auth.can('students.print')"
+          to="/print/student-badges"
+          class="text-xs text-ink-muted underline-offset-2 hover:underline"
+        >
           In thẻ / bảng tên
         </NuxtLink>
       </div>

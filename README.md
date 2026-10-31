@@ -19,6 +19,24 @@ Student conduct rules and evaluation criteria follow the official 2026 - 2027 em
 
 ---
 
+## Roles, scoping and granular permissions
+
+- `ADMIN` — full access, including account management, permission overrides, audit logs and settings.
+- `TEACHER` — homeroom teacher. Automatically scoped to the classes assigned in **Tài khoản → Lớp phụ trách**: students, violations, rankings, statistics, badge printing and the **Lớp của tôi** dashboard only cover those classes.
+- `DISCIPLINE` — QR scanning and violation recording; can only review their own recorded violations.
+
+Each non-admin account has an explicit permission set stored in `users.permissions` (JSON). When empty, the role defaults apply. Admins can toggle individual permissions (students, classes, violations, reports, system) per account, assign multiple classes to a teacher, reset passwords and lock accounts from `/admin/accounts`.
+
+### Teacher class workspace
+
+`/admin/my-class` shows the assigned class roster, average conduct score, school-wide class rank, recent violations, badge printing and links to the full student list. Teachers are redirected here after login.
+
+### Badge printing
+
+`/print/student-badges` prints 90 × 60 mm student badges, 2 columns × 4 rows on A4, with photo, school name, class, student code, academic year and a scan-ready QR. Filters include class, status and name/code search; teachers only see their assigned classes.
+
+---
+
 ## Discipline and Conduct Criteria (2026 - 2027)
 
 ### 1. Punctuality and Attendance

@@ -7,6 +7,8 @@ onMounted(async () => {
   if (!auth.user.value) await auth.fetchMe()
   if (auth.user.value?.role === 'DISCIPLINE') {
     await navigateTo('/mobile')
+  } else if (auth.user.value?.role === 'TEACHER') {
+    await navigateTo('/admin/my-class')
   } else {
     await navigateTo('/admin')
   }

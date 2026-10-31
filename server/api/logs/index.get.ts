@@ -1,11 +1,9 @@
 import { desc } from 'drizzle-orm'
-import { requireRole } from '../../utils/auth'
-import { useDB } from '../../database/client'
+import { requirePermission } from '../../utils/permissions'
 import { auditLogs } from '../../database/schema'
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['ADMIN'])
-  const db = useDB(event)
+  const { db } = await requirePermission(event, 'logs.view')
   const q = getQuery(event)
   const page = Math.max(1, Number(q.page) || 1)
   const limit = Math.min(200, Math.max(1, Number(q.limit) || 50))

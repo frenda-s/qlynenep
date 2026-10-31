@@ -9,7 +9,7 @@ import type { SessionPayload } from '../utils/jwt'
 
 type ViolationWithRelations = {
   id: string
-  student: { id: string; fullName: string; studentCode: string; class: { name: string } | null } | null
+  student: { id: string; fullName: string; studentCode: string; class: { id: string; name: string } | null } | null
   recordedByUser: { id: string; fullName: string } | null
   note: string | null
   totalPoints: number
@@ -25,6 +25,7 @@ export function serializeViolation(v: ViolationWithRelations) {
           id: v.student.id,
           full_name: v.student.fullName,
           student_code: v.student.studentCode,
+          class_id: v.student.class?.id ?? null,
           class_name: v.student.class?.name ?? null,
         }
       : null,

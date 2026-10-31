@@ -18,6 +18,9 @@ export const users = sqliteTable(
     fullName: text('full_name').notNull(),
     role: text('role', { enum: ROLES }).notNull(),
     status: text('status', { enum: STATUSES }).notNull().default('active'),
+    // JSON array of permission keys. null/empty = dùng quyền mặc định của role.
+    permissions: text('permissions'),
+    lastLoginAt: integer('last_login_at'),
     createdAt: integer('created_at').notNull().$defaultFn(now),
     updatedAt: integer('updated_at').notNull().$defaultFn(now),
   },
@@ -111,9 +114,11 @@ export const schoolSettings = sqliteTable('school_settings', {
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 export type Class = typeof classes.$inferSelect
+export type NewClass = typeof classes.$inferInsert
 export type Student = typeof students.$inferSelect
 export type NewStudent = typeof students.$inferInsert
 export type ViolationType = typeof violationTypes.$inferSelect
+export type NewViolationType = typeof violationTypes.$inferInsert
 export type Violation = typeof violations.$inferSelect
 export type ViolationItem = typeof violationItems.$inferSelect
 export type AuditLog = typeof auditLogs.$inferSelect

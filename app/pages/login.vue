@@ -2,7 +2,6 @@
 definePageMeta({ middleware: 'guest', layout: 'default' })
 
 const auth = useAuth()
-const toast = useToast()
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
@@ -18,6 +17,7 @@ async function submit() {
   try {
     const user = await auth.login(username.value.trim(), password.value)
     if (user.role === 'DISCIPLINE') await navigateTo('/mobile')
+    else if (user.role === 'TEACHER') await navigateTo('/admin/my-class')
     else await navigateTo('/admin')
   } catch (e: unknown) {
     error.value = (e as { message?: string })?.message || 'Đăng nhập thất bại'

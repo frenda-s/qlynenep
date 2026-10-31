@@ -26,8 +26,8 @@ export async function updateClass(db: DB, id: string, input: UpdateClassInput) {
   })
 }
 
-export async function listClassesWithStats(db: DB) {
-  const classes = await classesRepo.listClasses(db)
+export async function listClassesWithStats(db: DB, classIds?: string[] | null) {
+  const classes = await classesRepo.listClasses(db, classIds)
   return Promise.all(
     classes.map(async (c) => {
       const size = await classesRepo.countStudentsInClass(db, c.id)

@@ -1,17 +1,22 @@
-import { requireAuth } from '../../utils/auth'
-import { useDB } from '../../database/client'
+import { requirePermission } from '../../utils/permissions'
 import { listStudents } from '../../repositories/students'
 import { studentQuerySchema } from '../../schemas/students'
 import { parseQuery } from '../../utils/query'
+import { forbidden } from '../../utils/errors'
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
-  const db = useDB(event)
+  const { db, actor } = await requirePermission(event, 'students.view')
   const q = parseQuery(event, studentQuerySchema)
+
+  // Giáo viên chỉ được xem học sinh thuộc lớp mình phụ trách.
+  if (q.class_id && actor.classIds !== null && !actor.classIds.includes(q.class_id)) {
+    forbidden('Bạn không phụ trách lớp này')
+  }
 
   const { rows, total } = await listStudents(db, {
     q: q.q,
     classId: q.class_id,
+    classIds: actor.classIds,
     grade: q.grade,
     status: q.status,
     page: q.page,
@@ -35,5 +40,6 @@ export default defineEventHandler(async (event) => {
     total,
     page: q.page,
     limit: q.limit,
+    scoped: actor.classIds !== null,
   }
 })

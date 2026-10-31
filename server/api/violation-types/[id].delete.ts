@@ -1,16 +1,14 @@
-import { requireRole } from '../../utils/auth'
-import { useDB } from '../../database/client'
+import { requirePermission } from '../../utils/permissions'
 import { deleteViolationType } from '../../services/violation-types.service'
 import { parseRouteParam } from '../../utils/query'
 import { writeAudit } from '../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireRole(event, ['ADMIN'])
-  const db = useDB(event)
+  const { db, actor } = await requirePermission(event, 'violation_types.manage')
   const id = parseRouteParam(event, 'id')
   await deleteViolationType(db, id)
   await writeAudit(db, {
-    userId: user.sub,
+    userId: actor.userId,
     action: 'UPDATE_VIOLATION_TYPE',
     targetType: 'violation_type',
     targetId: id,

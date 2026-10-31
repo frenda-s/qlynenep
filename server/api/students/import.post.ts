@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { requireRole } from '../../utils/auth'
+import { requirePermission } from '../../utils/permissions'
 import { useDB } from '../../database/client'
 import { parseBody, badRequest } from '../../utils/errors'
 import { parseCsv } from '../../utils/csv'
@@ -14,11 +14,10 @@ const importSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = await requireRole(event, ['ADMIN'])
-  const db = useDB(event)
+  const { db, actor } = await requirePermission(event, 'students.import')
   const input = await parseBody(event, importSchema)
 
-  const classes = await listClasses(db)
+  const classes = await listClasses(db, actor.classIds)
   const classByName = new Map(classes.map((c) => [c.name.trim().toLowerCase(), c]))
   const classById = new Map(classes.map((c) => [c.id, c]))
 
@@ -46,6 +45,10 @@ export default defineEventHandler(async (event) => {
     }
 
     let classId = input.class_id ?? null
+    if (classId && actor.classIds !== null && !actor.classIds.includes(classId)) {
+      errors.push(`Dòng ${i + 1}: bạn không phụ trách lớp này`)
+      continue
+    }
     if (idxClass !== -1 && row[idxClass]) {
       const raw = row[idxClass].trim()
       const byId = classById.get(raw)
@@ -73,7 +76,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await writeAudit(db, {
-    userId: user.sub,
+    userId: actor.userId,
     action: 'CREATE_STUDENT',
     targetType: 'student',
     metadata: { imported: imported.length, errors: errors.length },

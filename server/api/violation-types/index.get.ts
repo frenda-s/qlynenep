@@ -1,10 +1,8 @@
-import { requireAuth } from '../../utils/auth'
-import { useDB } from '../../database/client'
+import { requireActor } from '../../utils/permissions'
 import { listViolationTypes } from '../../repositories/violation-types'
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
-  const db = useDB(event)
+  const { db } = await requireActor(event)
   const q = getQuery(event)
   const activeOnly = q.active === '1' || q.active === 'true'
   const types = await listViolationTypes(db, activeOnly)

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm'
 import type { DB } from '../database/client'
 import {
   classes,
@@ -68,6 +68,8 @@ export interface ViolationListFilter {
   studentId?: string
   classId?: string
   recordedBy?: string
+  /** null/undefined = tất cả lớp, [] = không lớp nào. */
+  classIds?: string[] | null
   period?: Period
   page: number
   limit: number
@@ -76,8 +78,24 @@ export interface ViolationListFilter {
 export async function listViolations(db: DB, f: ViolationListFilter) {
   const where: SQL[] = []
   if (f.studentId) where.push(eq(violations.studentId, f.studentId))
-  if (f.classId) where.push(eq(students.classId, f.classId))
+  if (f.classId) {
+    where.push(
+      inArray(
+        violations.studentId,
+        db.select({ id: students.id }).from(students).where(eq(students.classId, f.classId)),
+      ),
+    )
+  }
   if (f.recordedBy) where.push(eq(violations.recordedBy, f.recordedBy))
+  if (f.classIds !== null && f.classIds !== undefined) {
+    if (f.classIds.length === 0) return { rows: [], total: 0 }
+    where.push(
+      inArray(
+        violations.studentId,
+        db.select({ id: students.id }).from(students).where(inArray(students.classId, f.classIds)),
+      ),
+    )
+  }
   if (f.period) {
     const [from, to] = rangeFor(f.period)
     where.push(gte(violations.createdAt, from), lte(violations.createdAt, to))
@@ -147,25 +165,53 @@ export async function studentViolationCount(db: DB, studentId: string): Promise<
   return Number(count)
 }
 
-export async function countViolationsInRange(db: DB, from: number, to: number): Promise<number> {
+function scopedViolationWhere(from: number, to: number, classIds?: string[] | null): SQL {
+  const parts: SQL[] = [gte(violations.createdAt, from), lte(violations.createdAt, to)]
+  if (classIds !== null && classIds !== undefined) {
+    parts.push(inArray(students.classId, classIds))
+  }
+  return and(...parts)!
+}
+
+export async function countViolationsInRange(
+  db: DB,
+  from: number,
+  to: number,
+  classIds?: string[] | null,
+): Promise<number> {
+  if (classIds && classIds.length === 0) return 0
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)` })
     .from(violations)
-    .where(and(gte(violations.createdAt, from), lte(violations.createdAt, to)))
+    .innerJoin(students, eq(students.id, violations.studentId))
+    .where(scopedViolationWhere(from, to, classIds))
   return Number(count)
 }
 
-export async function sumPointsInRange(db: DB, from: number, to: number): Promise<number> {
+export async function sumPointsInRange(
+  db: DB,
+  from: number,
+  to: number,
+  classIds?: string[] | null,
+): Promise<number> {
+  if (classIds && classIds.length === 0) return 0
   const rows = await db
     .select({ total: sql<number>`coalesce(sum(${violations.totalPoints}), 0)` })
     .from(violations)
-    .where(and(gte(violations.createdAt, from), lte(violations.createdAt, to)))
+    .innerJoin(students, eq(students.id, violations.studentId))
+    .where(scopedViolationWhere(from, to, classIds))
   return Number(rows[0]?.total ?? 0)
 }
 
 // ── Statistics ─────────────────────────────────────────────
 
-export async function violationCountByType(db: DB, from: number, to: number) {
+export async function violationCountByType(
+  db: DB,
+  from: number,
+  to: number,
+  classIds?: string[] | null,
+) {
+  if (classIds && classIds.length === 0) return []
   return db
     .select({
       name: violationTypes.name,
@@ -175,12 +221,21 @@ export async function violationCountByType(db: DB, from: number, to: number) {
     .from(violationItems)
     .innerJoin(violationTypes, eq(violationItems.violationTypeId, violationTypes.id))
     .innerJoin(violations, eq(violationItems.violationId, violations.id))
-    .where(and(gte(violations.createdAt, from), lte(violations.createdAt, to)))
+    .innerJoin(students, eq(students.id, violations.studentId))
+    .where(scopedViolationWhere(from, to, classIds))
     .groupBy(violationTypes.name)
     .orderBy(desc(sql<number>`count(*)`))
 }
 
-export async function violationCountByClass(db: DB, from: number, to: number) {
+export async function violationCountByClass(
+  db: DB,
+  from: number,
+  to: number,
+  classIds?: string[] | null,
+) {
+  if (classIds && classIds.length === 0) return []
+  const parts: SQL[] = [gte(violations.createdAt, from), lte(violations.createdAt, to)]
+  if (classIds !== null && classIds !== undefined) parts.push(inArray(students.classId, classIds))
   return db
     .select({
       classId: classes.id,
@@ -191,16 +246,27 @@ export async function violationCountByClass(db: DB, from: number, to: number) {
     .from(violations)
     .innerJoin(students, eq(violations.studentId, students.id))
     .innerJoin(classes, eq(students.classId, classes.id))
-    .where(and(gte(violations.createdAt, from), lte(violations.createdAt, to)))
+    .where(and(...parts))
     .groupBy(classes.id, classes.name)
     .orderBy(desc(sql<number>`count(*)`))
 }
 
-export async function violationSeries(db: DB, from: number, to: number, bucketMs: number, buckets: number) {
+export async function violationSeries(
+  db: DB,
+  from: number,
+  to: number,
+  bucketMs: number,
+  buckets: number,
+  classIds?: string[] | null,
+) {
+  if (classIds && classIds.length === 0) {
+    return Array.from({ length: buckets }, (_, i) => ({ ts: from + i * bucketMs, count: 0, points: 0 }))
+  }
   const rows = await db
     .select({ createdAt: violations.createdAt, totalPoints: violations.totalPoints })
     .from(violations)
-    .where(and(gte(violations.createdAt, from), lte(violations.createdAt, to)))
+    .innerJoin(students, eq(students.id, violations.studentId))
+    .where(scopedViolationWhere(from, to, classIds))
 
   const series = new Array<{ ts: number; count: number; points: number }>(buckets)
   for (let i = 0; i < buckets; i++) {

@@ -4,6 +4,8 @@ import qrcode from 'qrcode-generator'
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { api, errorMessage, toast } = useApi()
+const auth = useAuth()
+const route = useRoute()
 
 type Student = {
   id: string
@@ -231,6 +233,8 @@ function exportCsv() {
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / limit)))
 
 onMounted(() => {
+  const fromQuery = route.query.class_id
+  if (typeof fromQuery === 'string' && fromQuery) classId.value = fromQuery
   loadClasses()
   load()
 })
@@ -243,13 +247,13 @@ onMounted(() => {
         <h1 class="serif text-3xl font-bold">Học sinh</h1>
         <p class="mt-1 text-sm text-ink-muted">{{ total }} học sinh</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
         <UiButton variant="outline" @click="exportCsv">Xuất CSV</UiButton>
-        <UiButton variant="outline" @click="importOpen = true">Nhập CSV</UiButton>
-        <NuxtLink to="/print/student-badges">
+        <UiButton v-if="auth.can('students.import')" variant="outline" @click="importOpen = true">Nhập CSV</UiButton>
+        <NuxtLink v-if="auth.can('students.print')" to="/print/student-badges">
           <UiButton variant="outline">In thẻ</UiButton>
         </NuxtLink>
-        <UiButton @click="openCreate">+ Thêm học sinh</UiButton>
+        <UiButton v-if="auth.can('students.create')" @click="openCreate">+ Thêm học sinh</UiButton>
       </div>
     </div>
 
@@ -305,9 +309,9 @@ onMounted(() => {
             </td>
             <td class="py-2.5">
               <div class="flex gap-3 text-xs">
-                <button class="text-ink-muted hover:text-ink" @click="openEdit(s)">Sửa</button>
+                <button v-if="auth.can('students.edit')" class="text-ink-muted hover:text-ink" @click="openEdit(s)">Sửa</button>
                 <button class="text-ink-muted hover:text-ink" @click="showQr(s)">QR</button>
-                <button class="text-accent hover:text-accent-ink" @click="disableStudent(s)">Vô hiệu</button>
+                <button v-if="auth.can('students.delete')" class="text-accent hover:text-accent-ink" @click="disableStudent(s)">Vô hiệu</button>
               </div>
             </td>
           </tr>

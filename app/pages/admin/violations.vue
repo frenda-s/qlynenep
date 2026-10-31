@@ -2,6 +2,7 @@
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { api, errorMessage, toast } = useApi()
+const auth = useAuth()
 
 type Violation = {
   id: string
@@ -92,7 +93,7 @@ onMounted(load)
             <td class="py-2.5 pr-4 serif font-semibold text-accent">{{ v.total_points }}</td>
             <td class="py-2.5 pr-4">{{ v.recorded_by?.full_name ?? '—' }}</td>
             <td class="py-2.5">
-              <button class="text-xs text-accent hover:text-accent-ink" @click="remove(v)">Xóa</button>
+              <button v-if="auth.can('violations.delete')" class="text-xs text-accent hover:text-accent-ink" @click="remove(v)">Xóa</button>
             </td>
           </tr>
         </tbody>

@@ -31,6 +31,7 @@ export async function studentProfile(db: DB, studentId: string) {
     photo: student.photo ?? null,
     status: student.status,
     class: student.class ? { id: student.class.id, name: student.class.name, grade: student.class.grade } : null,
+    class_id: student.classId,
     class_name: student.class?.name ?? null,
     current_points: currentPoints(penaltySum),
     total_violations: violationCount,

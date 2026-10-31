@@ -12,6 +12,7 @@ import { recordViolation } from '../server/services/violations.service'
 import { studentRanking, classRanking } from '../server/services/rankings.service'
 import { dashboard } from '../server/services/statistics.service'
 import { genIdempotencyKey } from '../server/utils/id'
+import { classifyConduct } from '../server/utils/conduct'
 
 const DB_PATH = '.data/vitest.db'
 
@@ -164,5 +165,28 @@ describe('statistics + ranking', () => {
     const r = await classRanking(db, 'month')
     expect(r.classes.length).toBeGreaterThan(0)
     expect(typeof r.classes[0]!.avg_points).toBe('number')
+    expect(r.classes[0]!.classification).toBe(classifyConduct(r.classes[0]!.avg_points))
+  })
+
+  it('ranking học sinh có phân loại hạnh kiểm và đồng hạng khi bằng điểm', async () => {
+    const r = await studentRanking(db, 'year')
+    const first = r.students[0]!
+    expect(first.classification).toBe(classifyConduct(first.points))
+    expect(r.summary.total).toBe(r.students.length)
+
+    for (let i = 1; i < r.students.length; i++) {
+      const prev = r.students[i - 1]!
+      const cur = r.students[i]!
+      if (cur.points === prev.points) expect(cur.rank).toBe(prev.rank)
+      else expect(cur.rank).toBeGreaterThan(prev.rank)
+    }
+  })
+
+  it('ranking hỗ trợ lọc theo lớp', async () => {
+    const all = await studentRanking(db, 'month')
+    const classId = all.students[0]!.class_id
+    const filtered = await studentRanking(db, 'month', { classId })
+    expect(filtered.students.length).toBeGreaterThan(0)
+    expect(filtered.students.every((s) => s.class_id === classId)).toBe(true)
   })
 })

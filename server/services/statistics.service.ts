@@ -4,15 +4,15 @@ import * as classesRepo from '../repositories/classes'
 import * as violationsRepo from '../repositories/violations'
 import { rangeFor, type Period } from '../utils/time'
 
-export async function dashboard(db: DB) {
+export async function dashboard(db: DB, classIds?: string[] | null) {
   const [todayFrom] = rangeFor('today')
   const now = Date.now()
 
   const [students, classes, violationsToday, pointsToday] = await Promise.all([
-    studentsRepo.countActiveStudents(db),
-    classesRepo.countActiveClasses(db),
-    violationsRepo.countViolationsInRange(db, todayFrom, now),
-    violationsRepo.sumPointsInRange(db, todayFrom, now),
+    studentsRepo.countActiveStudents(db, classIds),
+    classesRepo.countActiveClasses(db, classIds),
+    violationsRepo.countViolationsInRange(db, todayFrom, now, classIds),
+    violationsRepo.sumPointsInRange(db, todayFrom, now, classIds),
   ])
 
   return {
@@ -23,9 +23,9 @@ export async function dashboard(db: DB) {
   }
 }
 
-export async function violationStatistics(db: DB, period: Period) {
+export async function violationStatistics(db: DB, period: Period, classIds?: string[] | null) {
   const [from, to] = rangeFor(period)
-  const byType = await violationsRepo.violationCountByType(db, from, to)
+  const byType = await violationsRepo.violationCountByType(db, from, to, classIds)
 
   // Series: chọn bucket theo period
   let bucketMs: number
@@ -44,7 +44,7 @@ export async function violationStatistics(db: DB, period: Period) {
     buckets = 27
   }
 
-  const series = await violationsRepo.violationSeries(db, from, to, bucketMs, buckets)
+  const series = await violationsRepo.violationSeries(db, from, to, bucketMs, buckets, classIds)
 
   return {
     period,
@@ -55,9 +55,9 @@ export async function violationStatistics(db: DB, period: Period) {
   }
 }
 
-export async function classStatistics(db: DB, period: Period) {
+export async function classStatistics(db: DB, period: Period, classIds?: string[] | null) {
   const [from, to] = rangeFor(period)
-  const rows = await violationsRepo.violationCountByClass(db, from, to)
+  const rows = await violationsRepo.violationCountByClass(db, from, to, classIds)
   return {
     period,
     from,

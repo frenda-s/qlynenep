@@ -5,6 +5,7 @@ import { verifyPassword } from '../utils/hash'
 import { signSession } from '../utils/jwt'
 import { unauthorized } from '../utils/errors'
 import { writeAudit } from '../utils/audit'
+import { effectivePermissions } from '../utils/rbac'
 import type { User } from '../database/schema'
 
 export function sanitizeUser(user: User) {
@@ -14,6 +15,7 @@ export function sanitizeUser(user: User) {
     fullName: user.fullName,
     role: user.role,
     status: user.status,
+    permissions: effectivePermissions(user),
   }
 }
 
@@ -30,6 +32,7 @@ export async function login(db: DB, input: LoginInput, secret: string) {
     { sub: user!.id, role: user!.role, name: user!.fullName },
     secret,
   )
+  await usersRepo.updateUser(db, user!.id, { lastLoginAt: Date.now() })
   await writeAudit(db, { userId: user!.id, action: 'LOGIN' })
   return { token, user: sanitizeUser(user!) }
 }

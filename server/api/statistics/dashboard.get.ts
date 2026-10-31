@@ -1,9 +1,7 @@
-import { requireRole } from '../../utils/auth'
-import { useDB } from '../../database/client'
+import { requirePermission } from '../../utils/permissions'
 import { dashboard } from '../../services/statistics.service'
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['ADMIN', 'TEACHER'])
-  const db = useDB(event)
-  return await dashboard(db)
+  const { db, actor } = await requirePermission(event, 'statistics.view')
+  return await dashboard(db, actor.classIds)
 })

@@ -5,9 +5,10 @@ interface ToastItem {
   variant: 'default' | 'success' | 'destructive'
 }
 
-const toasts = useState<ToastItem[]>('toasts', () => [])
-
 export function useToast() {
+  // useState phải được gọi bên trong setup/plugin/middleware, không được
+  // đặt ở top-level module (sẽ lỗi khi route module được nạp ngoài Nuxt context).
+  const toasts = useState<ToastItem[]>('toasts', () => [])
   let seq = 0
 
   function push(toast: Omit<ToastItem, 'id'>) {

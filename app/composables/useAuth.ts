@@ -5,6 +5,9 @@ export interface AuthUser {
   fullName?: string
   name?: string
   role: 'ADMIN' | 'TEACHER' | 'DISCIPLINE'
+  status?: 'active' | 'inactive'
+  permissions?: string[]
+  class_ids?: string[] | null
 }
 
 export function useAuth() {
@@ -52,5 +55,28 @@ export function useAuth() {
   const isTeacher = computed(() => user.value?.role === 'TEACHER')
   const isDiscipline = computed(() => user.value?.role === 'DISCIPLINE')
 
-  return { user, fetchMe, login, logout, displayName, isAdmin, isTeacher, isDiscipline }
+  /** Kiểm tra quyền chi tiết. ADMIN luôn có mọi quyền. */
+  function can(permission: string): boolean {
+    const u = user.value
+    if (!u) return false
+    if (u.role === 'ADMIN') return true
+    return (u.permissions ?? []).includes(permission)
+  }
+
+  function canAny(permissions: string[]): boolean {
+    return permissions.some((p) => can(p))
+  }
+
+  return {
+    user,
+    fetchMe,
+    login,
+    logout,
+    displayName,
+    isAdmin,
+    isTeacher,
+    isDiscipline,
+    can,
+    canAny,
+  }
 }
