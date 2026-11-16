@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { conductTone, type ConductRating } from '~/utils/conduct'
+import { Printer, Users, Trophy, GraduationCap } from '@lucide/vue'
 
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
@@ -109,8 +110,9 @@ watch(period, load, { immediate: true })
 
     <div v-if="loading" class="mt-10 text-center text-sm text-ink-muted">Đang tải…</div>
 
-    <div v-else-if="!data || data.classes.length === 0" class="mt-10 rounded-[2px] border border-rule p-8 text-center">
-      <p class="serif text-xl font-semibold">Chưa có lớp được phân công</p>
+    <div v-else-if="!data || data.classes.length === 0" class="mt-10 rounded-lg border border-rule p-8 text-center">
+      <GraduationCap class="mx-auto h-8 w-8 text-ink-faint" />
+      <p class="serif mt-3 text-xl font-semibold">Chưa có lớp được phân công</p>
       <p class="mt-2 text-sm text-ink-muted">
         Liên hệ quản trị viên để được gán lớp chủ nhiệm. Sau khi được gán, lớp sẽ xuất hiện tại đây.
       </p>
@@ -144,13 +146,13 @@ watch(period, load, { immediate: true })
 
       <div class="mt-4 flex flex-wrap gap-2">
         <NuxtLink :to="`/print/student-badges?class=${selected.class_id}`">
-          <UiButton variant="outline">In thẻ lớp {{ selected.name }}</UiButton>
+          <UiButton variant="outline"><Printer class="h-4 w-4" /> In thẻ lớp {{ selected.name }}</UiButton>
         </NuxtLink>
         <NuxtLink :to="`/admin/students?class_id=${selected.class_id}`">
-          <UiButton variant="outline">Danh sách học sinh</UiButton>
+          <UiButton variant="outline"><Users class="h-4 w-4" /> Danh sách học sinh</UiButton>
         </NuxtLink>
         <NuxtLink to="/admin/rankings">
-          <UiButton variant="outline">Xem xếp hạng</UiButton>
+          <UiButton variant="outline"><Trophy class="h-4 w-4" /> Xem xếp hạng</UiButton>
         </NuxtLink>
       </div>
 

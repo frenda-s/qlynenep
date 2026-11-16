@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Plus, Pencil, Ban } from '@lucide/vue'
+
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { api, errorMessage, toast } = useApi()
@@ -105,7 +107,7 @@ onMounted(() => {
         <h1 class="serif text-3xl font-bold">Lớp</h1>
         <p class="mt-1 text-sm text-ink-muted">{{ classes.length }} lớp</p>
       </div>
-      <UiButton @click="openCreate">+ Thêm lớp</UiButton>
+      <UiButton @click="openCreate"><Plus class="h-4 w-4" /> Thêm lớp</UiButton>
     </div>
 
     <div class="mt-6 overflow-x-auto">
@@ -134,9 +136,13 @@ onMounted(() => {
               </UiBadge>
             </td>
             <td class="py-2.5">
-              <div class="flex gap-3 text-xs">
-                <button class="text-ink-muted hover:text-ink" @click="openEdit(c)">Sửa</button>
-                <button class="text-accent hover:text-accent-ink" @click="remove(c)">Vô hiệu</button>
+              <div class="flex items-center gap-3 text-xs">
+                <button class="inline-flex items-center gap-1 text-ink-muted hover:text-ink" @click="openEdit(c)">
+                  <Pencil class="h-3.5 w-3.5" /> Sửa
+                </button>
+                <button class="inline-flex items-center gap-1 text-accent hover:text-accent-ink" @click="remove(c)">
+                  <Ban class="h-3.5 w-3.5" /> Vô hiệu
+                </button>
               </div>
             </td>
           </tr>

@@ -9,9 +9,11 @@ import { countStudents, createStudent } from '../../repositories/students'
 import { writeAudit } from '../../utils/audit'
 
 const importSchema = z.object({
-  csv: z.string().min(1),
+  csv: z.string().min(1).max(1_000_000, 'File CSV quá lớn (tối đa ~1MB)'),
   class_id: z.string().optional(), // dùng chung cho mọi dòng nếu CSV không có cột lớp
 })
+
+const MAX_IMPORT_ROWS = 2000
 
 export default defineEventHandler(async (event) => {
   const { db, actor } = await requirePermission(event, 'students.import')
@@ -23,9 +25,12 @@ export default defineEventHandler(async (event) => {
 
   const rows = parseCsv(input.csv)
   if (rows.length === 0) badRequest('File CSV rỗng')
+  if (rows.length - 1 > MAX_IMPORT_ROWS) {
+    badRequest(`Quá nhiều dòng: tối đa ${MAX_IMPORT_ROWS} học sinh mỗi lần nhập`)
+  }
 
   // Header
-  const header = rows[0].map((h) => h.trim().toLowerCase())
+  const header = rows[0]!.map((h) => h.trim().toLowerCase())
   const idxName = header.findIndex((h) => h === 'full_name' || h === 'ho_ten' || h === 'họ tên' || h === 'hoten')
   const idxCode = header.findIndex((h) => h === 'student_code' || h === 'ma_hs' || h === 'mã hs' || h === 'mahs')
   const idxClass = header.findIndex((h) => h === 'class_name' || h === 'lop' || h === 'lớp' || h === 'class_id')
@@ -37,7 +42,7 @@ export default defineEventHandler(async (event) => {
   const errors: string[] = []
 
   for (let i = 1; i < rows.length; i++) {
-    const row = rows[i]
+    const row = rows[i]!
     const fullName = (row[idxName] ?? '').trim()
     if (!fullName) {
       errors.push(`Dòng ${i + 1}: thiếu họ tên`)
@@ -50,7 +55,7 @@ export default defineEventHandler(async (event) => {
       continue
     }
     if (idxClass !== -1 && row[idxClass]) {
-      const raw = row[idxClass].trim()
+      const raw = row[idxClass]!.trim()
       const byId = classById.get(raw)
       const byName = classByName.get(raw.toLowerCase())
       classId = byId?.id ?? byName?.id ?? null
@@ -64,7 +69,7 @@ export default defineEventHandler(async (event) => {
       continue
     }
 
-    const code = idxCode !== -1 && row[idxCode] ? row[idxCode].trim() : genStudentCode(++seq)
+    const code = idxCode !== -1 && row[idxCode] ? row[idxCode]!.trim() : genStudentCode(++seq)
     await createStudent(db, {
       studentCode: code,
       fullName,

@@ -51,6 +51,16 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
+    // ponytail: security headers cơ bản, chưa có CSP. Thêm CSP (script-src/style-src)
+    // khi đã audit inline style của Nuxt/Tailwind để tránh vỡ UI.
+    '/**': {
+      headers: {
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'no-referrer',
+        'Permissions-Policy': 'camera=(self), geolocation=(), microphone=()',
+      },
+    },
     '/admin/**': { ssr: false },
     '/print/**': { ssr: false },
   },

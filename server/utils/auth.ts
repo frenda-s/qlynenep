@@ -3,6 +3,7 @@ import { useRuntimeConfig } from 'nitropack/runtime'
 import { verifySession, type SessionPayload } from './jwt'
 
 export const SESSION_COOKIE = 'nenepos_session'
+export const DEV_AUTH_SECRET = 'dev-secret-change-me-in-production'
 
 export function setSessionCookie(event: H3Event, token: string): void {
   const secure = getRequestURL(event).protocol === 'https:'
@@ -30,13 +31,23 @@ export function getAuthSecret(event: H3Event): string {
     const config = useRuntimeConfig(event) as { authSecret?: string }
     runtimeSecret = config?.authSecret
   } catch {}
-  return (
+
+  const secret =
     cfEnv?.AUTH_SECRET ||
     cfEnv?.NUXT_AUTH_SECRET ||
     runtimeSecret ||
     process.env.AUTH_SECRET ||
-    'dev-secret-change-me-in-production'
-  )
+    DEV_AUTH_SECRET
+
+  // Fail-closed: trong production, không được phép dùng secret mặc định
+  // (ai cũng biết → có thể tự ký JWT giả mạo ADMIN).
+  if (secret === DEV_AUTH_SECRET && !import.meta.dev) {
+    throw createError({
+      statusCode: 500,
+      message: 'Chưa cấu hình AUTH_SECRET cho production. Hệ thống từ chối tạo phiên để đảm bảo an toàn.',
+    })
+  }
+  return secret
 }
 
 export async function getAuthUser(event: H3Event): Promise<SessionPayload | null> {

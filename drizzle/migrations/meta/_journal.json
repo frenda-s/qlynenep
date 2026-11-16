@@ -15,6 +15,13 @@
       "when": 1793154801997,
       "tag": "0001_naive_ozymandias",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794800911579,
+      "tag": "0002_young_switch",
+      "breakpoints": true
     }
   ]
 }

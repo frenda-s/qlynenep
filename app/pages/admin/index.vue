@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Users, School, TriangleAlert, CircleMinus, TrendingDown, Trophy } from '@lucide/vue'
+
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { api } = useApi()
@@ -51,28 +53,48 @@ onMounted(async () => {
 
     <div class="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
       <UiCard class="p-5">
-        <p class="text-[11px] uppercase tracking-widest text-ink-muted">Học sinh</p>
+        <div class="flex items-start justify-between">
+          <p class="text-[11px] uppercase tracking-widest text-ink-muted">Học sinh</p>
+          <Users class="h-4 w-4 text-ink-faint" />
+        </div>
         <p class="serif mt-2 text-3xl font-bold">{{ dash?.students ?? '—' }}</p>
       </UiCard>
       <UiCard class="p-5">
-        <p class="text-[11px] uppercase tracking-widest text-ink-muted">Lớp</p>
+        <div class="flex items-start justify-between">
+          <p class="text-[11px] uppercase tracking-widest text-ink-muted">Lớp</p>
+          <School class="h-4 w-4 text-ink-faint" />
+        </div>
         <p class="serif mt-2 text-3xl font-bold">{{ dash?.classes ?? '—' }}</p>
       </UiCard>
       <UiCard class="p-5">
-        <p class="text-[11px] uppercase tracking-widest text-ink-muted">Vi phạm hôm nay</p>
+        <div class="flex items-start justify-between">
+          <p class="text-[11px] uppercase tracking-widest text-ink-muted">Vi phạm hôm nay</p>
+          <TriangleAlert class="h-4 w-4 text-ink-faint" />
+        </div>
         <p class="serif mt-2 text-3xl font-bold">{{ dash?.violations_today ?? '—' }}</p>
       </UiCard>
       <UiCard class="p-5">
-        <p class="text-[11px] uppercase tracking-widest text-ink-muted">Điểm trừ hôm nay</p>
+        <div class="flex items-start justify-between">
+          <p class="text-[11px] uppercase tracking-widest text-ink-muted">Điểm trừ hôm nay</p>
+          <CircleMinus class="h-4 w-4 text-ink-faint" />
+        </div>
         <p class="serif mt-2 text-3xl font-bold text-accent">-{{ dash?.points_today ?? '—' }}</p>
       </UiCard>
     </div>
 
     <div class="mt-8 grid gap-6 lg:grid-cols-2">
       <UiCard class="p-5">
-        <h2 class="serif text-lg font-bold">Vi phạm theo thời gian</h2>
-        <p class="text-xs text-ink-muted">7 ngày gần đây</p>
-        <div class="mt-4 flex h-40 items-end gap-1">
+        <div class="flex items-start justify-between">
+          <div>
+            <h2 class="serif text-lg font-bold">Vi phạm theo thời gian</h2>
+            <p class="text-xs text-ink-muted">7 ngày gần đây</p>
+          </div>
+          <TrendingDown class="h-4 w-4 text-ink-faint" />
+        </div>
+        <div v-if="series.length === 0" class="mt-4 flex h-40 items-center justify-center text-sm text-ink-faint">
+          Chưa có dữ liệu
+        </div>
+        <div v-else class="mt-4 flex h-40 items-end gap-1">
           <div v-for="(s, i) in series" :key="i" class="flex flex-1 flex-col items-center gap-1">
             <div
               class="w-full bg-ink transition-all"
@@ -84,8 +106,13 @@ onMounted(async () => {
       </UiCard>
 
       <UiCard class="p-5">
-        <h2 class="serif text-lg font-bold">Loại vi phạm phổ biến</h2>
-        <p class="text-xs text-ink-muted">Tháng này</p>
+        <div class="flex items-start justify-between">
+          <div>
+            <h2 class="serif text-lg font-bold">Loại vi phạm phổ biến</h2>
+            <p class="text-xs text-ink-muted">Tháng này</p>
+          </div>
+          <Trophy class="h-4 w-4 text-ink-faint" />
+        </div>
         <div v-if="byType.length === 0" class="mt-4 text-sm text-ink-faint">Chưa có dữ liệu</div>
         <ul v-else class="mt-4 space-y-3">
           <li v-for="t in byType" :key="t.name">
@@ -96,7 +123,7 @@ onMounted(async () => {
             <div class="mt-1 h-2 w-full bg-paper-dim">
               <div
                 class="h-2 bg-ink"
-                :style="{ width: `${(t.count / Math.max(1, byType[0].count)) * 100}%` }"
+                :style="{ width: `${(t.count / Math.max(1, byType[0]?.count ?? 1)) * 100}%` }"
               />
             </div>
           </li>

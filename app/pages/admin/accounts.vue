@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Plus, Pencil, Ban } from '@lucide/vue'
+
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { api, errorMessage, toast } = useApi()
@@ -242,7 +244,7 @@ onMounted(() => {
           {{ users.length }} tài khoản · phân quyền chi tiết theo từng người dùng
         </p>
       </div>
-      <UiButton @click="openCreate">+ Thêm tài khoản</UiButton>
+      <UiButton @click="openCreate"><Plus class="h-4 w-4" /> Thêm tài khoản</UiButton>
     </div>
 
     <div class="mt-6 overflow-x-auto">
@@ -291,14 +293,16 @@ onMounted(() => {
             </td>
             <td class="py-2.5 pr-4 text-xs text-ink-muted">{{ fmt(u.last_login_at) }}</td>
             <td class="py-2.5">
-              <div class="flex gap-3 text-xs">
-                <button class="text-ink-muted hover:text-ink" @click="openEdit(u)">Sửa</button>
+              <div class="flex items-center gap-3 text-xs">
+                <button class="inline-flex items-center gap-1 text-ink-muted hover:text-ink" @click="openEdit(u)">
+                  <Pencil class="h-3.5 w-3.5" /> Sửa
+                </button>
                 <button
                   v-if="u.status === 'active' && auth.user.value?.id !== u.id"
-                  class="text-accent hover:text-accent-ink"
+                  class="inline-flex items-center gap-1 text-accent hover:text-accent-ink"
                   @click="deactivate(u)"
                 >
-                  Khóa
+                  <Ban class="h-3.5 w-3.5" /> Khóa
                 </button>
               </div>
             </td>
@@ -356,7 +360,7 @@ onMounted(() => {
           <p class="mt-1 text-[11px] text-ink-faint">
             Giáo viên chỉ xem, ghi nhận vi phạm và in thẻ cho học sinh thuộc các lớp này.
           </p>
-          <div class="mt-2 grid max-h-40 gap-2 overflow-y-auto rounded-[2px] border border-rule p-3 sm:grid-cols-2">
+          <div class="mt-2 grid max-h-40 gap-2 overflow-y-auto rounded-lg border border-rule p-3 sm:grid-cols-2">
             <label v-for="c in classes" :key="c.id" class="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -371,7 +375,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="rounded-[2px] border border-rule p-3">
+        <div class="rounded-lg border border-rule p-3">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p class="text-sm font-semibold">Quyền chi tiết</p>
@@ -403,7 +407,7 @@ onMounted(() => {
                 <label
                   v-for="p in group.items"
                   :key="p.key"
-                  class="flex cursor-pointer items-start gap-2 rounded-[2px] px-1 py-1 hover:bg-paper-dim"
+                  class="flex cursor-pointer items-start gap-2 rounded-lg px-1 py-1 hover:bg-paper-dim"
                 >
                   <input
                     type="checkbox"

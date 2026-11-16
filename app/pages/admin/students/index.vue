@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import qrcode from 'qrcode-generator'
+import { Download, Upload, Printer, Plus } from '@lucide/vue'
+import { toCsv } from '~/utils/csv'
 
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
@@ -217,10 +219,10 @@ function onFile(e: Event) {
 
 function exportCsv() {
   const header = ['student_code', 'full_name', 'class_name', 'points', 'violation_count', 'status']
-  const lines = students.value.map((s) =>
-    [s.student_code, s.full_name, s.class_name, s.points, s.violation_count, s.status].join(','),
-  )
-  const csv = [header.join(','), ...lines].join('\n')
+  const rows = students.value.map((s) => [
+    s.student_code, s.full_name, s.class_name, s.points, s.violation_count, s.status,
+  ])
+  const csv = toCsv([header, ...rows])
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -248,12 +250,16 @@ onMounted(() => {
         <p class="mt-1 text-sm text-ink-muted">{{ total }} học sinh</p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <UiButton variant="outline" @click="exportCsv">Xuất CSV</UiButton>
-        <UiButton v-if="auth.can('students.import')" variant="outline" @click="importOpen = true">Nhập CSV</UiButton>
+        <UiButton variant="outline" @click="exportCsv"><Download class="h-4 w-4" /> Xuất CSV</UiButton>
+        <UiButton v-if="auth.can('students.import')" variant="outline" @click="importOpen = true">
+          <Upload class="h-4 w-4" /> Nhập CSV
+        </UiButton>
         <NuxtLink v-if="auth.can('students.print')" to="/print/student-badges">
-          <UiButton variant="outline">In thẻ</UiButton>
+          <UiButton variant="outline"><Printer class="h-4 w-4" /> In thẻ</UiButton>
         </NuxtLink>
-        <UiButton v-if="auth.can('students.create')" @click="openCreate">+ Thêm học sinh</UiButton>
+        <UiButton v-if="auth.can('students.create')" @click="openCreate">
+          <Plus class="h-4 w-4" /> Thêm học sinh
+        </UiButton>
       </div>
     </div>
 

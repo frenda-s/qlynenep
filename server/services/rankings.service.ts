@@ -1,6 +1,6 @@
 import type { DB } from '../database/client'
 import * as rankingsRepo from '../repositories/rankings'
-import { rangeFor, type Period } from '../utils/time'
+import { fmtDate, rangeFor, type Period } from '../utils/time'
 import { CONDUCT_ORDER, classifyConduct, type ConductRating } from '../utils/conduct'
 
 export interface RankingFilter {
@@ -37,10 +37,37 @@ function assignRanks<T>(rows: T[], valueOf: (row: T) => number): (T & { rank: nu
   })
 }
 
+export interface ViolationReason {
+  name: string
+  count: number
+  points: number
+  students?: number
+}
+
+function topReasons<T>(
+  map: Map<string, ViolationReason[]>,
+  key: string,
+  n = 3,
+): ViolationReason[] {
+  return (map.get(key) ?? [])
+    .sort((a, b) => b.points - a.points || b.count - a.count)
+    .slice(0, n)
+}
+
 export async function studentRanking(db: DB, period: Period, filter: RankingFilter = {}) {
   const [from, to] = rangeFor(period)
   const scope = { classId: filter.classId, classIds: filter.classIds, grade: filter.grade }
-  const rows = await rankingsRepo.studentPointsInRange(db, from, to, scope)
+  const [rows, details] = await Promise.all([
+    rankingsRepo.studentPointsInRange(db, from, to, scope),
+    rankingsRepo.studentViolationDetails(db, from, to, scope),
+  ])
+
+  const reasonsByStudent = new Map<string, ViolationReason[]>()
+  for (const d of details) {
+    const list = reasonsByStudent.get(d.studentId) ?? []
+    list.push({ name: d.typeName, count: Number(d.count), points: Number(d.points) })
+    reasonsByStudent.set(d.studentId, list)
+  }
 
   const mapped = rows
     .filter((r) => matchesQuery(filter.q, r.fullName, r.studentCode, r.className))
@@ -64,7 +91,11 @@ export async function studentRanking(db: DB, period: Period, filter: RankingFilt
     )
 
   const ranked = assignRanks(mapped, (r) => r.points)
-  const limited = filter.limit ? ranked.slice(0, filter.limit) : ranked
+  const withReasons = ranked.map((s) => ({
+    ...s,
+    reasons: topReasons(reasonsByStudent, s.student_id),
+  }))
+  const limited = filter.limit ? withReasons.slice(0, filter.limit) : withReasons
   const average =
     mapped.length > 0
       ? Math.round((mapped.reduce((sum, r) => sum + r.points, 0) / mapped.length) * 10) / 10
@@ -87,10 +118,11 @@ export async function studentRanking(db: DB, period: Period, filter: RankingFilt
 export async function classRanking(db: DB, period: Period, filter: RankingFilter = {}) {
   const [from, to] = rangeFor(period)
   const scope = { classId: filter.classId, classIds: filter.classIds, grade: filter.grade }
-  const [agg, sizes, studentRows] = await Promise.all([
+  const [agg, sizes, studentRows, details] = await Promise.all([
     rankingsRepo.classViolationAggregate(db, from, to, scope),
     rankingsRepo.classStudentCounts(db, scope),
     rankingsRepo.studentPointsInRange(db, from, to, scope),
+    rankingsRepo.classViolationDetails(db, from, to, scope),
   ])
 
   const sizeMap = new Map(sizes.map((s) => [s.classId, Number(s.size)]))
@@ -101,6 +133,18 @@ export async function classRanking(db: DB, period: Period, filter: RankingFilter
     item.count += 1
     if (s.violationCount === 0) item.perfect += 1
     studentStats.set(s.classId, item)
+  }
+
+  const reasonsByClass = new Map<string, ViolationReason[]>()
+  for (const d of details) {
+    const list = reasonsByClass.get(d.classId) ?? []
+    list.push({
+      name: d.typeName,
+      count: Number(d.count),
+      points: Number(d.points),
+      students: Number(d.studentCount),
+    })
+    reasonsByClass.set(d.classId, list)
   }
 
   const rows = agg
@@ -122,6 +166,7 @@ export async function classRanking(db: DB, period: Period, filter: RankingFilter
         student_avg: stats && stats.count > 0 ? Math.round((stats.total / stats.count) * 10) / 10 : 100,
         perfect_students: stats?.perfect ?? 0,
         classification: classifyConduct(avgPoints),
+        reasons: topReasons(reasonsByClass, c.classId),
       }
     })
     .sort(
@@ -146,5 +191,51 @@ export async function classRanking(db: DB, period: Period, filter: RankingFilter
       by_rating: ratingSummary(rows.map((r) => r.classification)),
     },
     classes: ranked,
+  }
+}
+
+export interface WeeklyClassSummary {
+  rank: number
+  class_id: string
+  name: string
+  grade: number
+  size: number
+  avg_points: number
+  violations: number
+  points_deducted: number
+  perfect_students: number
+  classification: string
+  /** Loại vi phạm nhiều nhất, xếp theo điểm trừ giảm dần. */
+  reasons: ViolationReason[]
+}
+
+/**
+ * Tổng kết tuần: lớp nào đứng nhất, thứ hạng từng lớp (đồng hạng khi bằng điểm),
+ * kèm chú thích vi phạm nào làm tụt hạng.
+ */
+export async function weeklySummary(db: DB, filter: RankingFilter = {}) {
+  const { classes: ranked, from, to } = await classRanking(db, 'week', filter)
+
+  const classes: WeeklyClassSummary[] = ranked.map((c) => ({
+    rank: c.rank,
+    class_id: c.class_id,
+    name: c.name,
+    grade: c.grade,
+    size: c.size,
+    avg_points: c.avg_points,
+    violations: c.violations,
+    points_deducted: c.points_deducted,
+    perfect_students: c.perfect_students,
+    classification: c.classification,
+    reasons: c.reasons,
+  }))
+
+  return {
+    from,
+    to,
+    label: `${fmtDate(from)} – ${fmtDate(to)}`,
+    /** Lớp dẫn đầu tuần; có thể nhiều lớp khi đồng điểm. */
+    champions: classes.filter((c) => c.rank === 1),
+    classes,
   }
 }

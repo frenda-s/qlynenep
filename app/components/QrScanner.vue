@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import jsQR from 'jsqr'
+import { SwitchCamera, CameraOff } from '@lucide/vue'
 
 const emit = defineEmits<{ scan: [string]; error: [string] }>()
 
@@ -81,27 +82,45 @@ defineExpose({ start, stop })
 </script>
 
 <template>
-  <div class="relative aspect-square overflow-hidden rounded-[2px] bg-ink">
+  <div class="relative aspect-square overflow-hidden rounded-lg bg-ink">
     <video ref="videoRef" class="h-full w-full object-cover" muted playsinline />
     <canvas ref="canvasRef" class="hidden" />
 
-    <div v-if="error" class="absolute inset-0 flex items-center justify-center bg-ink p-6 text-center text-sm text-paper">
-      {{ error }}
+    <div
+      v-if="error"
+      class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-ink p-6 text-center"
+    >
+      <CameraOff class="h-8 w-8 text-paper/70" />
+      <p class="text-sm text-paper/90">{{ error }}</p>
+      <button
+        type="button"
+        class="mt-1 rounded-lg border border-paper/60 px-3 py-1.5 text-xs text-paper transition-colors hover:bg-paper hover:text-ink"
+        @click="start()"
+      >
+        Thử lại
+      </button>
     </div>
 
     <template v-else>
       <div class="pointer-events-none absolute inset-0">
-        <div class="absolute left-1/2 top-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 border-2 border-paper/70" />
+        <div class="absolute left-1/2 top-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2">
+          <span class="absolute left-0 top-0 h-6 w-6 border-l-2 border-t-2 border-paper" />
+          <span class="absolute right-0 top-0 h-6 w-6 border-r-2 border-t-2 border-paper" />
+          <span class="absolute bottom-0 left-0 h-6 w-6 border-b-2 border-l-2 border-paper" />
+          <span class="absolute bottom-0 right-0 h-6 w-6 border-b-2 border-r-2 border-paper" />
+          <span class="scan-sweep absolute inset-x-0 top-0 h-px bg-paper" />
+        </div>
+        <p class="absolute bottom-16 left-1/2 -translate-x-1/2 text-[11px] uppercase tracking-widest text-paper/80">
+          Đưa mã QR vào khung
+        </p>
       </div>
       <button
         type="button"
-        class="absolute bottom-3 right-3 rounded-full bg-paper/20 p-3 text-paper backdrop-blur"
+        class="absolute bottom-3 right-3 rounded-full bg-paper/20 p-3 text-paper backdrop-blur transition-colors active:bg-paper active:text-ink"
         aria-label="Đổi camera"
         @click="toggleFacing"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-        </svg>
+        <SwitchCamera class="h-5 w-5" />
       </button>
     </template>
   </div>

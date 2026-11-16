@@ -48,8 +48,9 @@ const svgPoints = computed(() => {
   const pad = 10
   const minY = Math.min(...pts.map((p) => p.points), 0) - 10
   const maxY = 105
-  const minTs = pts[0].ts
-  const maxTs = pts[pts.length - 1].ts || minTs + 1
+  const first = pts[0]!
+  const minTs = first.ts
+  const maxTs = pts[pts.length - 1]!.ts || minTs + 1
   const x = (ts: number) => pad + ((ts - minTs) / Math.max(1, maxTs - minTs)) * (w - pad * 2)
   const y = (p: number) => pad + ((maxY - p) / (maxY - minY)) * (h - pad * 2)
   return pts.map((p) => `${x(p.ts).toFixed(1)},${y(p.points).toFixed(1)}`).join(' ')

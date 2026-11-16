@@ -53,3 +53,52 @@
 .rule-b-thick {
   border-bottom: 3px double var(--color-ink);
 }
+
+/* Motion — dialog + scan frame */
+@keyframes paper-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes veil-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scan-sweep {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.15;
+  }
+  50% {
+    transform: translateY(180px);
+    opacity: 0.75;
+  }
+}
+
+.dialog-overlay[data-state='open'] {
+  animation: veil-in 150ms ease-out;
+}
+.dialog-content[data-state='open'] {
+  animation: paper-in 180ms ease-out;
+}
+.scan-sweep {
+  animation: scan-sweep 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog-overlay,
+  .dialog-content,
+  .scan-sweep {
+    animation: none !important;
+  }
+}

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 const now = () => Date.now()
 const uuid = () => crypto.randomUUID()
@@ -27,16 +27,20 @@ export const users = sqliteTable(
   (t) => [uniqueIndex('users_username_idx').on(t.username)],
 )
 
-export const classes = sqliteTable('classes', {
-  id: text('id').primaryKey().$defaultFn(uuid),
-  name: text('name').notNull(),
-  grade: integer('grade').notNull(),
-  academicYear: text('academic_year').notNull(),
-  teacherId: text('teacher_id').references(() => users.id, { onDelete: 'set null' }),
-  status: text('status', { enum: STATUSES }).notNull().default('active'),
-  createdAt: integer('created_at').notNull().$defaultFn(now),
-  updatedAt: integer('updated_at').notNull().$defaultFn(now),
-})
+export const classes = sqliteTable(
+  'classes',
+  {
+    id: text('id').primaryKey().$defaultFn(uuid),
+    name: text('name').notNull(),
+    grade: integer('grade').notNull(),
+    academicYear: text('academic_year').notNull(),
+    teacherId: text('teacher_id').references(() => users.id, { onDelete: 'set null' }),
+    status: text('status', { enum: STATUSES }).notNull().default('active'),
+    createdAt: integer('created_at').notNull().$defaultFn(now),
+    updatedAt: integer('updated_at').notNull().$defaultFn(now),
+  },
+  (t) => [index('classes_teacher_idx').on(t.teacherId)],
+)
 
 export const students = sqliteTable(
   'students',
@@ -56,6 +60,7 @@ export const students = sqliteTable(
   (t) => [
     uniqueIndex('students_student_code_idx').on(t.studentCode),
     uniqueIndex('students_qr_code_idx').on(t.qrCode),
+    index('students_class_idx').on(t.classId),
   ],
 )
 
@@ -69,40 +74,57 @@ export const violationTypes = sqliteTable('violation_types', {
   updatedAt: integer('updated_at').notNull().$defaultFn(now),
 })
 
-export const violations = sqliteTable('violations', {
-  id: text('id').primaryKey().$defaultFn(uuid),
-  studentId: text('student_id')
-    .notNull()
-    .references(() => students.id, { onDelete: 'restrict' }),
-  recordedBy: text('recorded_by')
-    .notNull()
-    .references(() => users.id, { onDelete: 'restrict' }),
-  note: text('note'),
-  totalPoints: integer('total_points').notNull(),
-  idempotencyKey: text('idempotency_key'),
-  createdAt: integer('created_at').notNull().$defaultFn(now),
-})
+export const violations = sqliteTable(
+  'violations',
+  {
+    id: text('id').primaryKey().$defaultFn(uuid),
+    studentId: text('student_id')
+      .notNull()
+      .references(() => students.id, { onDelete: 'restrict' }),
+    recordedBy: text('recorded_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    note: text('note'),
+    totalPoints: integer('total_points').notNull(),
+    idempotencyKey: text('idempotency_key'),
+    createdAt: integer('created_at').notNull().$defaultFn(now),
+  },
+  (t) => [
+    index('violations_student_idx').on(t.studentId),
+    index('violations_created_idx').on(t.createdAt),
+    index('violations_recorded_by_idx').on(t.recordedBy),
+    uniqueIndex('violations_idempotency_idx').on(t.idempotencyKey),
+  ],
+)
 
-export const violationItems = sqliteTable('violation_items', {
-  id: text('id').primaryKey().$defaultFn(uuid),
-  violationId: text('violation_id')
-    .notNull()
-    .references(() => violations.id, { onDelete: 'cascade' }),
-  violationTypeId: text('violation_type_id')
-    .notNull()
-    .references(() => violationTypes.id, { onDelete: 'restrict' }),
-  penaltyPoints: integer('penalty_points').notNull(),
-})
+export const violationItems = sqliteTable(
+  'violation_items',
+  {
+    id: text('id').primaryKey().$defaultFn(uuid),
+    violationId: text('violation_id')
+      .notNull()
+      .references(() => violations.id, { onDelete: 'cascade' }),
+    violationTypeId: text('violation_type_id')
+      .notNull()
+      .references(() => violationTypes.id, { onDelete: 'restrict' }),
+    penaltyPoints: integer('penalty_points').notNull(),
+  },
+  (t) => [index('violation_items_violation_idx').on(t.violationId)],
+)
 
-export const auditLogs = sqliteTable('audit_logs', {
-  id: text('id').primaryKey().$defaultFn(uuid),
-  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
-  action: text('action').notNull(),
-  targetType: text('target_type'),
-  targetId: text('target_id'),
-  metadata: text('metadata'),
-  createdAt: integer('created_at').notNull().$defaultFn(now),
-})
+export const auditLogs = sqliteTable(
+  'audit_logs',
+  {
+    id: text('id').primaryKey().$defaultFn(uuid),
+    userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+    action: text('action').notNull(),
+    targetType: text('target_type'),
+    targetId: text('target_id'),
+    metadata: text('metadata'),
+    createdAt: integer('created_at').notNull().$defaultFn(now),
+  },
+  (t) => [index('audit_logs_created_idx').on(t.createdAt)],
+)
 
 export const schoolSettings = sqliteTable('school_settings', {
   id: text('id').primaryKey().$defaultFn(uuid),

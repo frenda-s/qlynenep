@@ -20,7 +20,7 @@ const variants: Record<Variant, string> = {
   <span
     :class="
       cn(
-        'inline-flex items-center rounded-[2px] px-2 py-0.5 text-xs font-medium',
+        'inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-medium',
         variants[variant],
         props.class,
       )

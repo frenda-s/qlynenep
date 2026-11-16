@@ -2,19 +2,21 @@ import type { FetchOptions } from 'ofetch'
 
 export interface ApiError {
   statusCode: number
-  statusMessage: string
+  message?: string
   data?: unknown
 }
+
+type ApiOpts = FetchOptions<'json'> & Record<string, unknown>
 
 export function useApi() {
   const toast = useToast()
 
-  async function api<T>(path: string, opts: FetchOptions<'json'> = {}): Promise<T> {
+  async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
     try {
-      return await $fetch<T>(path, {
+      return (await $fetch(path, {
         credentials: 'include',
         ...opts,
-      })
+      } as never)) as T
     } catch (err: unknown) {
       const e = err as { statusCode?: number; statusMessage?: string; data?: unknown }
       if (e?.statusCode === 401 && path !== '/api/auth/me') {
@@ -24,9 +26,9 @@ export function useApi() {
       }
       throw {
         statusCode: e?.statusCode ?? 500,
-        message: (e?.statusMessage || 'Lỗi không xác định'),
+        message: e?.statusMessage || 'Lỗi không xác định',
         data: e?.data,
-      } as ApiError
+      } satisfies ApiError
     }
   }
 

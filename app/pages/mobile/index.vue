@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ScanLine, History, UserRound } from '@lucide/vue'
+
 definePageMeta({ middleware: 'auth', layout: 'mobile' })
 
 const auth = useAuth()
@@ -46,11 +48,31 @@ onMounted(async () => {
 
     <NuxtLink
       to="/mobile/scan"
-      class="mt-8 flex h-40 w-full flex-col items-center justify-center gap-3 rounded-[2px] border-2 border-ink bg-ink text-paper transition-colors active:bg-paper active:text-ink"
+      class="group mt-8 flex h-40 w-full flex-col items-center justify-center gap-3 rounded-lg border-2 border-ink bg-ink text-paper transition-colors active:bg-paper active:text-ink"
     >
-      <span class="serif text-4xl font-bold">QUÉT QR</span>
-      <span class="text-xs uppercase tracking-widest text-paper/70">Bắt đầu kiểm tra</span>
+      <ScanLine class="h-10 w-10" :stroke-width="1.6" />
+      <span class="serif text-3xl font-bold">QUÉT QR</span>
+      <span class="text-xs uppercase tracking-widest text-paper/60 group-active:text-ink/60">
+        Bắt đầu kiểm tra
+      </span>
     </NuxtLink>
+
+    <div class="mt-6 grid grid-cols-2 gap-3">
+      <NuxtLink
+        to="/mobile/history"
+        class="flex items-center gap-2 rounded-lg border border-rule p-3 text-xs text-ink-muted transition-colors hover:border-ink hover:text-ink"
+      >
+        <History class="h-4 w-4 shrink-0" />
+        Lịch sử kiểm tra
+      </NuxtLink>
+      <NuxtLink
+        to="/mobile/account"
+        class="flex items-center gap-2 rounded-lg border border-rule p-3 text-xs text-ink-muted transition-colors hover:border-ink hover:text-ink"
+      >
+        <UserRound class="h-4 w-4 shrink-0" />
+        Tài khoản
+      </NuxtLink>
+    </div>
 
     <p class="mt-8 text-center text-[11px] text-ink-faint">
       Quét mã QR trên bảng tên học sinh để ghi nhận vi phạm.

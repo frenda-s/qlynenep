@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Plus, Pencil, Trash, EyeOff } from '@lucide/vue'
+
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { api, errorMessage, toast } = useApi()
@@ -100,7 +102,7 @@ onMounted(load)
         <h1 class="serif text-3xl font-bold">Loại vi phạm</h1>
         <p class="mt-1 text-sm text-ink-muted">{{ types.length }} loại</p>
       </div>
-      <UiButton @click="openCreate">+ Thêm loại vi phạm</UiButton>
+      <UiButton @click="openCreate"><Plus class="h-4 w-4" /> Thêm loại vi phạm</UiButton>
     </div>
 
     <div class="mt-6 overflow-x-auto">
@@ -125,12 +127,17 @@ onMounted(load)
               </UiBadge>
             </td>
             <td class="py-2.5">
-              <div class="flex gap-3 text-xs">
-                <button class="text-ink-muted hover:text-ink" @click="openEdit(t)">Sửa</button>
-                <button class="text-ink-muted hover:text-ink" @click="toggleActive(t)">
+              <div class="flex items-center gap-3 text-xs">
+                <button class="inline-flex items-center gap-1 text-ink-muted hover:text-ink" @click="openEdit(t)">
+                  <Pencil class="h-3.5 w-3.5" /> Sửa
+                </button>
+                <button class="inline-flex items-center gap-1 text-ink-muted hover:text-ink" @click="toggleActive(t)">
+                  <EyeOff class="h-3.5 w-3.5" />
                   {{ t.is_active ? 'Tắt' : 'Bật' }}
                 </button>
-                <button class="text-accent hover:text-accent-ink" @click="remove(t)">Xóa</button>
+                <button class="inline-flex items-center gap-1 text-accent hover:text-accent-ink" @click="remove(t)">
+                  <Trash class="h-3.5 w-3.5" /> Xóa
+                </button>
               </div>
             </td>
           </tr>

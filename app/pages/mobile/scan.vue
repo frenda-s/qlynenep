@@ -1,4 +1,15 @@
 <script setup lang="ts">
+import {
+  ChevronLeft,
+  Check,
+  CircleCheck,
+  Image as ImageIcon,
+  TriangleAlert,
+  ClipboardList,
+  ArrowRight,
+  ScanLine,
+} from '@lucide/vue'
+
 definePageMeta({ middleware: 'auth', layout: 'mobile' })
 
 const { api, errorMessage, toast } = useApi()
@@ -125,10 +136,11 @@ function nextStudent() {
     <header class="rule-b pb-4">
       <button
         v-if="step !== 'scan'"
-        class="mb-2 text-sm text-ink-muted hover:text-ink"
+        class="mb-2 flex items-center gap-1 text-sm text-ink-muted transition-colors hover:text-ink"
         @click="step === 'success' ? backToScan() : (step = 'student')"
       >
-        ← Quay lại
+        <ChevronLeft class="h-4 w-4" />
+        Quay lại
       </button>
       <h1 class="serif text-2xl font-bold">{{ step === 'success' ? 'Đã ghi nhận' : 'Ghi nhận vi phạm' }}</h1>
     </header>
@@ -148,7 +160,8 @@ function nextStudent() {
           <div v-if="student.photo" class="h-24 w-20 shrink-0 overflow-hidden border border-rule">
             <img :src="student.photo" class="h-full w-full object-cover" alt="Ảnh thẻ" />
           </div>
-          <div v-else class="flex h-24 w-20 shrink-0 items-center justify-center border border-rule text-center text-[10px] leading-tight text-ink-faint">
+          <div v-else class="flex h-24 w-20 shrink-0 flex-col items-center justify-center gap-1 border border-rule text-center text-[10px] leading-tight text-ink-faint">
+            <ImageIcon class="h-5 w-5" />
             Chưa có ảnh
           </div>
           <div class="min-w-0">
@@ -183,7 +196,9 @@ function nextStudent() {
         </div>
       </UiCard>
 
-      <UiButton size="lg" class="mt-6 w-full" @click="startSelect">GHI NHẬN VI PHẠM</UiButton>
+      <UiButton size="lg" class="mt-6 w-full" @click="startSelect">
+        <ClipboardList class="h-4 w-4" /> GHI NHẬN VI PHẠM
+      </UiButton>
     </div>
 
     <!-- SELECT -->
@@ -194,13 +209,13 @@ function nextStudent() {
           v-for="t in types"
           :key="t.id"
           type="button"
-          class="flex w-full items-center justify-between rounded-[2px] border px-4 py-3 text-left transition-colors"
+          class="flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors"
           :class="selected.has(t.id) ? 'border-ink bg-ink text-paper' : 'border-rule bg-paper text-ink hover:border-ink'"
           @click="toggle(t.id)"
         >
           <span class="flex items-center gap-3">
             <span class="flex h-5 w-5 items-center justify-center border text-xs" :class="selected.has(t.id) ? 'border-paper' : 'border-ink'">
-              <span v-if="selected.has(t.id)">✓</span>
+              <Check v-if="selected.has(t.id)" class="h-3.5 w-3.5" />
             </span>
             <span class="text-sm font-medium">{{ t.name }}</span>
           </span>
@@ -219,7 +234,7 @@ function nextStudent() {
       </div>
 
       <UiButton size="lg" class="mt-4 w-full" :disabled="selectedTypes.length === 0" @click="step = 'confirm'">
-        XÁC NHẬN
+        <ArrowRight class="h-4 w-4" /> XÁC NHẬN
       </UiButton>
     </div>
 
@@ -231,7 +246,10 @@ function nextStudent() {
         <p class="mt-4 text-[11px] uppercase tracking-widest text-ink-muted">Vi phạm</p>
         <ul class="mt-2 space-y-1 text-sm">
           <li v-for="t in selectedTypes" :key="t.id" class="flex justify-between">
-            <span>✓ {{ t.name }}</span>
+            <span class="flex items-center gap-2">
+              <Check class="h-4 w-4 text-ok" />
+              {{ t.name }}
+            </span>
             <span class="text-accent">-{{ t.penalty_points }}</span>
           </li>
         </ul>
@@ -247,6 +265,7 @@ function nextStudent() {
       <div class="mt-6 grid grid-cols-2 gap-3">
         <UiButton variant="outline" size="lg" @click="step = 'select'">HỦY</UiButton>
         <UiButton size="lg" :disabled="submitting" @click="confirmSubmit">
+          <Check class="h-4 w-4" />
           {{ submitting ? 'Đang gửi…' : 'XÁC NHẬN' }}
         </UiButton>
       </div>
@@ -254,15 +273,20 @@ function nextStudent() {
 
     <!-- SUCCESS -->
     <div v-else-if="step === 'success' && student" class="mt-4 text-center">
-      <div class="flex h-16 w-16 items-center justify-center rounded-full border-2 border-ok text-ok mx-auto">
-        <span class="text-3xl">✓</span>
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-ok text-ok">
+        <CircleCheck class="h-9 w-9" :stroke-width="1.8" />
       </div>
       <h2 class="serif mt-4 text-2xl font-bold">Đã ghi nhận vi phạm</h2>
       <p class="mt-2 text-lg text-ink-muted">{{ student.full_name }} · {{ student.class_name }}</p>
       <p class="serif mt-4 text-3xl font-bold text-accent">Tổng điểm trừ: {{ lastResult?.total ?? 0 }}</p>
-      <p v-if="lastResult?.duplicate" class="mt-2 text-xs text-ink-faint">Yêu cầu trùng lặp — đã bỏ qua ghi đè.</p>
+      <p v-if="lastResult?.duplicate" class="mt-2 flex items-center justify-center gap-1.5 text-xs text-warn">
+        <TriangleAlert class="h-3.5 w-3.5" />
+        Yêu cầu trùng lặp — đã bỏ qua ghi đè.
+      </p>
 
-      <UiButton size="lg" class="mt-8 w-full" @click="nextStudent">QUÉT HỌC SINH TIẾP THEO</UiButton>
+      <UiButton size="lg" class="mt-8 w-full" @click="nextStudent">
+        <ScanLine class="h-4 w-4" /> QUÉT HỌC SINH TIẾP THEO
+      </UiButton>
     </div>
   </div>
 </template>

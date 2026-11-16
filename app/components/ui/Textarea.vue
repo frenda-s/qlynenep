@@ -16,8 +16,8 @@ function onInput(e: Event) {
     :value="modelValue"
     :class="
       cn(
-        'flex w-full rounded-[2px] border border-rule bg-paper px-3 py-2 text-sm text-ink',
-        'placeholder:text-ink-faint focus:border-ink focus:outline-none focus:ring-0',
+        'flex w-full rounded-lg border border-rule bg-paper px-3 py-2 text-sm text-ink',
+        'shadow-xs transition-colors placeholder:text-ink-faint focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10',
         props.class,
       )
     "
